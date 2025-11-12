@@ -9,7 +9,8 @@ The Teranode Operator manages [Teranode](https://www.bsvblockchain.org/teranode)
 ### From OCI Registry (Recommended)
 
 ```bash
-helm install teranode-operator oci://ghcr.io/bsv-blockchain/teranode-operator \
+helm install teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operator \
+  --version 0.1.0 \
   -n teranode-operator \
   --create-namespace \
   --set deployment.env.watch_namespace="teranode"

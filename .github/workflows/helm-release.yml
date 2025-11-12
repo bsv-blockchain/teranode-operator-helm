@@ -72,7 +72,7 @@ jobs:
           echo "🔍 Checking if chart version ${{ steps.chart-version.outputs.chart_version }} exists in GHCR..."
 
           # Try to pull the chart (will fail if it doesn't exist)
-          if helm pull oci://ghcr.io/${{ github.repository_owner }}/teranode-operator --version ${{ steps.chart-version.outputs.chart_version }} 2>/dev/null; then
+          if helm pull oci://ghcr.io/${{ github.repository_owner }}/helm/teranode-operator --version ${{ steps.chart-version.outputs.chart_version }} 2>/dev/null; then
             echo "⚠️ Chart version ${{ steps.chart-version.outputs.chart_version }} already exists in GHCR"
             echo "exists=true" >> $GITHUB_OUTPUT
           else
@@ -88,7 +88,7 @@ jobs:
         uses: appany/helm-oci-chart-releaser@d94988c92bed2e09c6113981f15f8bb495d10943 # v0.5.0
         with:
           name: teranode-operator
-          repository: ${{ github.repository_owner }}
+          repository: ${{ github.repository_owner }}/helm
           tag: ${{ steps.chart-version.outputs.chart_version }}
           path: .
           registry: ghcr.io
@@ -115,13 +115,13 @@ jobs:
             echo "| Chart Name | teranode-operator |" >> $GITHUB_STEP_SUMMARY
             echo "| Chart Version | \`${{ steps.chart-version.outputs.chart_version }}\` |" >> $GITHUB_STEP_SUMMARY
             echo "| App Version | \`${{ steps.chart-version.outputs.app_version }}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "| Registry | ghcr.io/${{ github.repository_owner }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Registry | ghcr.io/${{ github.repository_owner }}/helm |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
 
             echo "## 📦 Installation" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```bash' >> $GITHUB_STEP_SUMMARY
-            echo "helm upgrade --install teranode-operator oci://ghcr.io/${{ github.repository_owner }}/teranode-operator \\" >> $GITHUB_STEP_SUMMARY
+            echo "helm upgrade --install teranode-operator oci://ghcr.io/${{ github.repository_owner }}/helm/teranode-operator \\" >> $GITHUB_STEP_SUMMARY
             echo "    --version ${{ steps.chart-version.outputs.chart_version }} \\" >> $GITHUB_STEP_SUMMARY
             echo "    -n teranode-operator \\" >> $GITHUB_STEP_SUMMARY
             echo "    --create-namespace" >> $GITHUB_STEP_SUMMARY
