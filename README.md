@@ -6,11 +6,21 @@ The Teranode Operator manages [Teranode](https://www.bsvblockchain.org/teranode)
 
 ## Installation
 
+### Prerequisites
+
+**Install CRDs first** (required before installing the operator):
+
+```bash
+# Install CRDs from the operator repository (v0.1.2)
+kubectl apply -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
+```
+
+**Important:** CRDs must be installed separately because they exceed the **Kubernetes Secret size limit of 1MB**. Helm stores release metadata in Kubernetes Secrets, and the Teranode Operator CRDs are approximately 3.6MB. The CRDs are versioned with the operator and should match the `appVersion` in the chart.
+
 ### From OCI Registry (Recommended)
 
 ```bash
 helm install teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operator \
-  --version 0.1.0 \
   -n teranode-operator \
   --create-namespace \
   --set deployment.env.watch_namespace="teranode"
@@ -19,9 +29,12 @@ helm install teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operat
 ### From Source
 
 ```bash
+# Install CRDs first
+kubectl apply -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
+
+# Clone and install chart
 git clone https://github.com/bsv-blockchain/teranode-operator-helm.git
 cd teranode-operator-helm
-git submodule update --init --recursive
 helm install teranode-operator ./ \
   -n teranode-operator \
   --create-namespace \
@@ -68,71 +81,33 @@ helm install teranode-operator ./ \
 
 **Note:** The sample cluster is opinionated and requires the BSVA reference architecture deployed via Terraform/OpenTofu modules.
 
-## Uninstallation
+## Upgrading
+
+When upgrading to a new operator version, update the CRDs first:
 
 ```bash
-helm uninstall teranode-operator -n teranode-operator
+# Update CRDs to match new operator version (e.g., v0.1.3)
+kubectl apply -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.3/deploy/crds.yaml
+
+# Upgrade the Helm chart
+helm upgrade teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operator \
+  --version 0.1.1 \
+  -n teranode-operator
 ```
 
-### Complete Cleanup (Including CRDs)
-
-Helm does not automatically remove CRDs during uninstallation. To completely remove all operator resources:
+## Uninstallation
 
 ```bash
 # Uninstall the operator
 helm uninstall teranode-operator -n teranode-operator
 
-# Remove all CRDs
+# Optionally remove CRDs (WARNING: This deletes all Teranode resources)
 kubectl get crd -o name | grep '\.teranode\.bsvblockchain\.org' | xargs kubectl delete
 ```
 
-**Warning:** This will delete all Teranode custom resources in your cluster.
+**Warning:** Deleting CRDs will remove all Teranode custom resources in your cluster.
 
 ## Development
-
-This repository uses a git submodule to track the operator source code for CRD synchronization.
-
-### Initial Setup
-
-```bash
-git clone https://github.com/bsv-blockchain/teranode-operator-helm.git
-cd teranode-operator-helm
-git submodule update --init --recursive
-```
-
-### Updating CRDs for a New Operator Version
-
-When a new operator version is released, sync the CRDs:
-
-```bash
-# Option 1: Specify version explicitly
-./sync-crds.sh v0.1.3
-
-# Option 2: Update Chart.yaml appVersion first, then run without args
-# Edit Chart.yaml: appVersion: "0.1.3"
-./sync-crds.sh  # Uses appVersion from Chart.yaml
-
-# Commit the updated CRDs and submodule reference
-git add crds/ operator Chart.yaml values.yaml
-git commit -m "Update to operator v0.1.3"
-```
-
-**Important**: The `operator/` submodule always points to a specific version tag (e.g., `v0.1.2`), not a branch. This ensures the chart is always tested against a known operator version.
-
-### Manual CRD Sync
-
-If you prefer manual synchronization:
-
-```bash
-# Checkout specific operator version
-cd operator && git fetch --tags && git checkout v0.1.3 && cd ..
-
-# Copy CRDs
-cp operator/deploy/crds.yaml crds/crds.yaml
-
-# Stage the submodule reference
-git add operator crds/
-```
 
 ### Testing Locally
 
@@ -164,10 +139,10 @@ This chart follows semantic versioning **independent** from the operator:
 
 - **App Version** (`appVersion` in Chart.yaml): Teranode Operator version being deployed
   - Should match a released operator version tag (e.g., `0.1.2` for operator tag `v0.1.2`)
-  - The `operator/` submodule is pinned to this exact version tag
   - Update `values.yaml` `deployment.image.tag` to match (with `v` prefix: `v0.1.2`)
+  - **Important:** Also update the CRD installation URL in the README to match the new version
 
-**Example**: Chart version `0.2.5` might deploy operator version `0.1.2` if no operator updates were needed.
+**Example**: Chart version `0.2.5` might deploy operator version `0.1.2` if only chart changes were made.
 
 See [Chart.yaml](./Chart.yaml) for current versions.
 
@@ -180,15 +155,20 @@ See [Chart.yaml](./Chart.yaml) for current versions.
 
 ## Release History
 
-| Chart Version | App Version | Date       | Changes         |
-|---------------|-------------|------------|-----------------|
-| 0.1.0         | 0.1.0       | 12/11/2025 | Initial release |
+| Chart Version | App Version | Date       | Changes                |
+|---------------|-------------|------------|------------------------|
+| 0.1.1         | 0.1.2       | 12/11/2025 | Remove CRDs from chart |
+| 0.1.0         | 0.1.2       | 12/11/2025 | Initial release        |
 
 ## Contributing
 
-1. Make changes to the chart
-2. Update `Chart.yaml` version (bump chart version for chart changes, appVersion for operator updates)
-3. Update CRDs if operator version changed: `./sync-crds.sh`
+1. Make changes to the chart templates/values
+2. Update `Chart.yaml`:
+   - Bump `version` for chart changes
+   - Update `appVersion` if deploying a new operator version
+3. If operator version changed:
+   - Update `values.yaml` `deployment.image.tag`
+   - Update CRD installation URL in README (Prerequisites section)
 4. Test locally: `helm lint . && helm template . --debug`
 5. Commit and push to `main` branch
 6. GitHub Actions will automatically publish to GHCR
