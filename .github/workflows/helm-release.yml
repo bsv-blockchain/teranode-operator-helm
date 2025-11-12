@@ -1,0 +1,131 @@
+# ------------------------------------------------------------------------------------
+#  Helm Chart Release Workflow
+#
+#  Purpose: Package and publish Helm charts to GHCR when chart files change
+#  Triggered by: Changes to chart files (via push or manual dispatch)
+#
+# ------------------------------------------------------------------------------------
+
+name: Helm Chart Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Chart.yaml'
+      - 'values.yaml'
+      - 'templates/**'
+      - 'crds/**'
+  workflow_dispatch:
+    inputs:
+      chart_version:
+        description: 'Chart version to release (leave empty to use Chart.yaml version)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  release-helm-chart:
+    name: 📦 Release Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      # --------------------------------------------------------------------
+      # Checkout code
+      # --------------------------------------------------------------------
+      - name: 📥 Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      # --------------------------------------------------------------------
+      # Extract chart version
+      # --------------------------------------------------------------------
+      - name: 🔍 Extract chart version
+        id: chart-version
+        run: |
+          # Use manual input if provided, otherwise extract from Chart.yaml
+          if [ -n "${{ github.event.inputs.chart_version }}" ]; then
+            CHART_VERSION="${{ github.event.inputs.chart_version }}"
+            echo "📌 Using manually specified version: $CHART_VERSION"
+          else
+            CHART_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}' | tr -d '"')
+            echo "📌 Using version from Chart.yaml: $CHART_VERSION"
+          fi
+
+          APP_VERSION=$(grep '^appVersion:' Chart.yaml | awk '{print $2}' | tr -d '"')
+
+          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+
+          echo "✅ Chart version: $CHART_VERSION"
+          echo "✅ App version: $APP_VERSION"
+
+      # --------------------------------------------------------------------
+      # Check if chart version already exists in GHCR
+      # --------------------------------------------------------------------
+      - name: 🔎 Check if chart version exists
+        id: check-version
+        continue-on-error: true
+        run: |
+          echo "🔍 Checking if chart version ${{ steps.chart-version.outputs.chart_version }} exists in GHCR..."
+
+          # Try to pull the chart (will fail if it doesn't exist)
+          if helm pull oci://ghcr.io/${{ github.repository_owner }}/teranode-operator --version ${{ steps.chart-version.outputs.chart_version }} 2>/dev/null; then
+            echo "⚠️ Chart version ${{ steps.chart-version.outputs.chart_version }} already exists in GHCR"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Chart version ${{ steps.chart-version.outputs.chart_version }} does not exist, proceeding with release"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # --------------------------------------------------------------------
+      # Push Helm Chart to GitHub Container Registry
+      # --------------------------------------------------------------------
+      - name: 📦 Push Helm Chart to GHCR
+        if: steps.check-version.outputs.exists != 'true'
+        uses: appany/helm-oci-chart-releaser@d94988c92bed2e09c6113981f15f8bb495d10943 # v0.5.0
+        with:
+          name: teranode-operator
+          repository: ${{ github.repository_owner }}
+          tag: ${{ steps.chart-version.outputs.chart_version }}
+          path: .
+          registry: ghcr.io
+          registry_username: ${{ github.repository_owner }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+
+      # --------------------------------------------------------------------
+      # Generate release summary
+      # --------------------------------------------------------------------
+      - name: 📊 Generate release summary
+        if: always()
+        run: |
+          echo "# 📦 Helm Chart Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check-version.outputs.exists }}" = "true" ]; then
+            echo "⚠️ **Chart version ${{ steps.chart-version.outputs.chart_version }} already exists in GHCR**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No action taken. To publish a new version, update the \`version\` field in \`Chart.yaml\`." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 📦 Chart Information" >> $GITHUB_STEP_SUMMARY
+            echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Chart Name | teranode-operator |" >> $GITHUB_STEP_SUMMARY
+            echo "| Chart Version | \`${{ steps.chart-version.outputs.chart_version }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| App Version | \`${{ steps.chart-version.outputs.app_version }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Registry | ghcr.io/${{ github.repository_owner }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            echo "## 📦 Installation" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "helm upgrade --install teranode-operator oci://ghcr.io/${{ github.repository_owner }}/teranode-operator \\" >> $GITHUB_STEP_SUMMARY
+            echo "    --version ${{ steps.chart-version.outputs.chart_version }} \\" >> $GITHUB_STEP_SUMMARY
+            echo "    -n teranode-operator \\" >> $GITHUB_STEP_SUMMARY
+            echo "    --create-namespace" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Helm chart published successfully!**" >> $GITHUB_STEP_SUMMARY
+          fi
