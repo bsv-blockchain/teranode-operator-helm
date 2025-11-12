@@ -12,10 +12,13 @@ The Teranode Operator manages [Teranode](https://www.bsvblockchain.org/teranode)
 
 ```bash
 # Install CRDs from the operator repository (v0.1.2)
-kubectl apply -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
 ```
 
-**Important:** CRDs must be installed separately because they exceed the **Kubernetes Secret size limit of 1MB**. Helm stores release metadata in Kubernetes Secrets, and the Teranode Operator CRDs are approximately 3.6MB. The CRDs are versioned with the operator and should match the `appVersion` in the chart.
+**Important:**
+- CRDs must be installed separately because they exceed the **Kubernetes Secret size limit of 1MB** (Helm stores release metadata in Secrets, and the CRDs are ~3.6MB)
+- The `--server-side` flag is required because some CRDs exceed the 256KB annotation size limit
+- CRDs are versioned with the operator and should match the `appVersion` in the chart
 
 ### From OCI Registry (Recommended)
 
@@ -30,7 +33,7 @@ helm install teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operat
 
 ```bash
 # Install CRDs first
-kubectl apply -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
 
 # Clone and install chart
 git clone https://github.com/bsv-blockchain/teranode-operator-helm.git
@@ -87,7 +90,7 @@ When upgrading to a new operator version, update the CRDs first:
 
 ```bash
 # Update CRDs to match new operator version (e.g., v0.1.3)
-kubectl apply -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.3/deploy/crds.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.3/deploy/crds.yaml
 
 # Upgrade the Helm chart
 helm upgrade teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operator \
