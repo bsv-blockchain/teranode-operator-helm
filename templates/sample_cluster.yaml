@@ -124,6 +124,8 @@ spec:
         host: {{ .Values.sampleCluster.hostname }}
       serviceAnnotations:
         traefik.ingress.kubernetes.io/service.serversscheme: h2c
+  pruner:
+    enabled: true
   rpc:
     enabled: true
     spec:
