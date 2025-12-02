@@ -512,6 +512,32 @@ rules:
   - apiGroups:
       - teranode.bsvblockchain.org
     resources:
+      - pruners
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - teranode.bsvblockchain.org
+    resources:
+      - pruners/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - teranode.bsvblockchain.org
+    resources:
+      - pruners/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - teranode.bsvblockchain.org
+    resources:
       - rpcs
     verbs:
       - create
