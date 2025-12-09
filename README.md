@@ -6,19 +6,13 @@ The Teranode Operator manages [Teranode](https://www.bsvblockchain.org/teranode)
 
 ## Installation
 
-### Prerequisites
+### Ensure stale CRDs are removed
+Helm will not delete and reinstall CRDs when they already exist on the cluster even when running `helm uninstall`.
 
-**Install CRDs first** (required before installing the operator):
-
-```bash
-# Install CRDs from the operator repository (v0.1.2)
-kubectl apply --server-side -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
+If you intend for `helm install` to install the latest version of CRDs, you must delete the old versions with:
 ```
-
-**Important:**
-- CRDs must be installed separately because they exceed the **Kubernetes Secret size limit of 1MB** (Helm stores release metadata in Secrets, and the CRDs are ~3.6MB)
-- The `--server-side` flag is required because some CRDs exceed the 256KB annotation size limit
-- CRDs are versioned with the operator and should match the `appVersion` in the chart
+$ kubectl get crd -o name | grep '\.teranode\.bsvblockchain\.org' | xargs kubectl delete
+```
 
 ### From OCI Registry (Recommended)
 
@@ -30,10 +24,6 @@ helm install teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operat
 ```
 
 ### From Source
-
-```bash
-# Install CRDs first
-kubectl apply --server-side -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.2/deploy/crds.yaml
 
 # Clone and install chart
 git clone https://github.com/bsv-blockchain/teranode-operator-helm.git
@@ -89,8 +79,8 @@ helm install teranode-operator ./ \
 When upgrading to a new operator version, update the CRDs first:
 
 ```bash
-# Update CRDs to match new operator version (e.g., v0.1.3)
-kubectl apply --server-side -f https://raw.githubusercontent.com/bsv-blockchain/teranode-operator/v0.1.3/deploy/crds.yaml
+# Update CRDs to match current version
+kubectl apply --server-side -f crds/
 
 # Upgrade the Helm chart
 helm upgrade teranode-operator oci://ghcr.io/bsv-blockchain/helm/teranode-operator \
