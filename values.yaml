@@ -10,7 +10,7 @@ deployment:
     watch_namespace:
   image:
     repository: ghcr.io/bsv-blockchain/teranode-operator
-    tag: v0.2.0
+    tag: v0.2.4
     pullPolicy: Always
   replicaCount: 1
 
@@ -18,7 +18,7 @@ deployment:
 teranode:
   image:
     repository: ghcr.io/bsv-blockchain/teranode
-    tag: v0.13.0-beta-1
+    tag: v0.13.0-beta-5
 
 # Sample Teranode cluster
 sampleCluster:
