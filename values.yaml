@@ -10,7 +10,7 @@ deployment:
     watch_namespace:
   image:
     repository: ghcr.io/bsv-blockchain/teranode-operator
-    tag: v0.2.10
+    tag: v0.8.5
     pullPolicy: Always
   replicaCount: 1
 
