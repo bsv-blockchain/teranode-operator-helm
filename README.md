@@ -150,6 +150,7 @@ See [Chart.yaml](./Chart.yaml) for current versions.
 
 | Chart Version | App Version | Date       | Changes                |
 |---------------|-------------|------------|------------------------|
+| 0.2.5         | 0.9.0       | 10/26/2026 | Bump kube-rbac-proxy to v0.23.1 |
 | 0.2.2         | 0.2.10       | 03/09/2026 | Fix RBAC proxy image  |
 | 0.1.1         | 0.1.2       | 12/11/2025 | Remove CRDs from chart |
 | 0.1.0         | 0.1.2       | 12/11/2025 | Initial release        |
